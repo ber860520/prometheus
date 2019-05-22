@@ -1,0 +1,28 @@
+##Install Prometheus Monitoring Using Docker##
+
+#1 Create directories to store Prometheus data and configuration files:
+sudo mkdir -p /opt/prometheus/{conf,data}
+
+#2 Change the ownership of the /opt/prometheus/data directory:
+sudo chown 65534:65534 /opt/prometheus/data
+
+#If you don’t change the ownership you may get the following error:
+msg=”Opening storage failed” err=”open DB in /prometheus: open /prometheus/123456789: permission denied”
+
+#3 Create a minimal Prometheus configuration file /opt/prometheus/conf/prometheus.yml:
+
+# prometheus.yml
+global:
+    scrape_interval: 5s    
+scrape_configs:
+    - job_name: 'prometheus'
+      target_groups:
+          - targets: ['localhost:9090']
+    - job_name: 'node-exporter'
+      target_groups:
+          - targets: ['node-exporter:9100']
+
+#4 Start prometheus with the following instruction
+docker run -d -v /opt/prometheus/conf/prometheus.yml:/etc/prometheus/prometheus.yml -v /opt/prometheus/data:/prometheus  --name prometheus_lab -p 9090:9090 prom/prometheus  --storage.tsdb.path=/prometheus --storage.tsdb.no-lockfile --web.enable-lifecycle --storage.tsdb.retention.time=5d --config.file=/etc/prometheus/prometheus.yml
+
+# 
