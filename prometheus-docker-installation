@@ -13,16 +13,23 @@ msg=”Opening storage failed” err=”open DB in /prometheus: open /prometheus
 
 # prometheus.yml
 global:
-    scrape_interval: 5s    
+    scrape_interval: 5s
 scrape_configs:
     - job_name: 'prometheus'
-      target_groups:
-          - targets: ['localhost:9090']
-    - job_name: 'node-exporter'
-      target_groups:
-          - targets: ['node-exporter:9100']
+      static_configs:
+      - targets: ['localhost:9090']
+
 
 #4 Start prometheus with the following instruction
 docker run -d -v /opt/prometheus/conf/prometheus.yml:/etc/prometheus/prometheus.yml -v /opt/prometheus/data:/prometheus  --name prometheus_lab -p 9090:9090 prom/prometheus  --storage.tsdb.path=/prometheus --storage.tsdb.no-lockfile --web.enable-lifecycle --storage.tsdb.retention.time=5d --config.file=/etc/prometheus/prometheus.yml
 
-# 
+#5 Download the nodeexporter and CAdvisor exporter
+https://prometheus.io/docs/instrumenting/exporters/
+
+#6 Create a new job and its static configs
+
+#7 Search on how to create rules and update the configuration file
+
+#8 Download and configure alertmanager
+
+#9 Update the Prometheus conf to add the alertmanager instance to the configuration.
