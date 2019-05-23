@@ -23,13 +23,79 @@ scrape_configs:
 #4 Start prometheus with the following instruction
 docker run -d -v /opt/prometheus/conf/prometheus.yml:/etc/prometheus/prometheus.yml -v /opt/prometheus/data:/prometheus  --name prometheus_lab -p 9090:9090 prom/prometheus  --storage.tsdb.path=/prometheus --storage.tsdb.no-lockfile --web.enable-lifecycle --storage.tsdb.retention.time=5d --config.file=/etc/prometheus/prometheus.yml
 
-#5 Download the nodeexporter and CAdvisor exporter
-https://prometheus.io/docs/instrumenting/exporters/
+#5 Download the nodeexporter and CAdvisor exporter in the 2nd virtual machine, as that one is going to be the monitored one.
+Node exporter:
+https://github.com/prometheus/node_exporter/releases/download/v0.18.0/node_exporter-0.18.0.linux-amd64.tar.gz
+
+Cadvisor:
+https://github.com/google/cadvisor/releases/download/v0.33.0/cadvisor
 
 #6 Create a new job and its static configs
+- job_name: 'nodeexporter'
+      static_configs:
+      - targets: ['IPOFTHEVIRTUALMACHINE:9100']
+ - job_name: 'cadvisor'
+      static_configs:
+      - targets: ['IPOFTHEVIRTUALMACHINE:8080']
+Remember to reload the configuration or restart the container
 
 #7 Search on how to create rules and update the configuration file
+================================
+groups:
+- name: MySQL Host Rules
+  rules:
+  - alert: Critical - CPU Usage
+    expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{instance!="prdrelaydb01-1.iad2.infery.com",mode="idle"}[5m])) * 100)) >70
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "CPU usage for instance: {{$labels.instance}} is above 50% for the last 5m."
+      description: "{{$labels.instance}} is having high *CPU* usage, now at {{ $value }}%"      
+================================
 
 #8 Download and configure alertmanager
 
+mkdir -p /opt/alertmanager/{conf,data}
+cd /opt/alertmanager/
+vim alertmanager.yml 
+
+=================================
+alertmanager.yml 
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+receivers:
+- name: 'web.hook'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/'
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
+
+=================================
+
+docker run -d -p 9093:9093 -v /opt/alertmanager/conf/alertmanager.yml:/etc/alertmanager/alertmanager.yml --name alertmanager_lab prom/alertmanager --config.file=/etc/alertmanager/alertmanager.yml
+
+
 #9 Update the Prometheus conf to add the alertmanager instance to the configuration.
+Update the prometheus.yml
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+       - localhost:9093
+
+Reload the Prometheus configuration again
+
+#10 You may go for cold refreshing beer
