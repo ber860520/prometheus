@@ -60,6 +60,12 @@ IMPORTANT
 Remove the current container and create a new one with the volume for rules.yml
 docker stop prometheus_lab
 docker rm prometheus_lab
+Add the below section to the prometheus.yml
+======
+#Rules
+rule_files:
+   - "rules.yml"
+======
 docker run -d -v /opt/prometheus/conf/prometheus.yml:/etc/prometheus/prometheus.yml -v /opt/prometheus/conf/rules.yml:/etc/prometheus/rules.yml -v /opt/prometheus/data:/prometheus  --name prometheus_lab -p 9090:9090 prom/prometheus  --storage.tsdb.path=/prometheus --storage.tsdb.no-lockfile --web.enable-lifecycle --storage.tsdb.retention.time=5d --config.file=/etc/prometheus/prometheus.yml
 
 #8 Download and configure alertmanager
